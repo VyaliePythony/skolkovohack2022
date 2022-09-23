@@ -73,3 +73,5 @@ for i in tqdm(range(len(data_candidates))):
             vec[skill] = 1
         data_candidates['Skills'][i] = vec
 data_candidates.pop('DateCreated')
+data_candidates_correct.pop('DriverLicense')
+data_candidates_correct.pop('Subway')

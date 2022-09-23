@@ -54,7 +54,8 @@ for i in tqdm(range(len(data_candidates))):
             lang = languages.index(ll[0])
             lev = level.index(ll[1])
             vec[lang] = lev+1
-        data_candidates['Langs'][i] = vec
+    vec = np.array(vec)
+    data_candidates['Langs'][i] = vec
 #токенизируем для эмбединнга столбец Skills(выход - вектор скилов, где будут 1 в ячейках где есть такие скиллы 0 -если нет)        
 skills=[]
 for i in tqdm(range(len(data_candidates))):
@@ -70,8 +71,8 @@ for i in tqdm(range(len(data_candidates))):
         a = data_candidates['Skills'][i].split("||")
         for j in range(len(a)-1):
             skill = skills.index(a[j])
-            vec[skill] = 1
-        data_candidates['Skills'][i] = vec
+    vec = np.array(vec)
+    data_candidates['Skills'][i] = vec
 data_candidates.pop('DateCreated')
 data_candidates_correct.pop('DriverLicense')
 data_candidates_correct.pop('Subway')

@@ -13,7 +13,7 @@ def set_path(path):
 def preprocess_signs(text):
     text = text.lower()
     text = re.sub(r'<.*?>', " ", text)
-    text = re.sub(r'[\_+\*+\#+\№\"\-+\+\=+\?+\&\^\.+\;\,+\>+\(\)\/+\:\\+]', " ", text)
+    text = re.sub(r'[\_+\*+\#+\№\"\-+\+\=+\?+\&\^\.+\;\,+\>+\(\)\/+]', " ", text)
     text = re.sub(r'[ ]{2,}',' ',text)
     text = text.strip()
     # tokens = mystem.lemmatize(text)

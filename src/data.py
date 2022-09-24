@@ -68,23 +68,23 @@ def load_data():
             'Skills','CandidateRegion']] = \
         test_candidates[['Position','Langs','DriverLicense', \
             'Skills','CandidateRegion']].applymap(preprocess_signs)
-
     for i in tqdm(range(len(data_candidates))):
         skills=['']
-        if data_candidates['Skills'][i] != 0 and data_candidates['Skills'][i] != "||":
+        if data_candidates['Skills'][i] != '' and data_candidates['Skills'][i] != "||":
+            skills=['']
             skills = data_candidates['Skills'][i].split("||")
-            a = ''.join(skills)
+        a = ''.join(skills)
         data_candidates['Skills'][i] = a
 
     for i in tqdm(range(len(data_candidates))):
         languages = ['']
-        if data_candidates['Langs'][i] != 0 and data_candidates['Langs'][i] != "||":
+        if data_candidates['Langs'][i] != '' and data_candidates['Langs'][i] != "||":
             a = data_candidates['Langs'][i].split("||")
             for j in range(len(a)-1):
                 ll = a[j].split(':')
                 languages.append(ll[0]) 
-                b = ''.join(languages)
-        data_candidates['Langs'][i] = b
+        b = ' '.join(languages)
+        data_candidates['Langs'][i] = b 
 
     return {
         'train':{

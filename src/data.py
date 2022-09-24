@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import re
 from string import punctuation
+import tqdm
 
 def set_path(path):
     global data_path, test_path
@@ -52,7 +53,7 @@ def load_data():
     test_candidates_education = test_candidates_education.fillna('').drop(['GraduateYear','University'],axis=1)
     test_candidates = test_candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway'],axis=1)
 
-    # drop useless columns
+    # preprocess
     data_jobs[['Name','Region','Description']] = data_jobs[['Name','Region','Description']].applymap(preprocess_signs)
     data_candidates_workplaces[['Position']] = data_candidates_workplaces[['Position']].applymap(preprocess_signs)
     data_candidates_education[['Faculty']] = data_candidates_education[['Faculty']].applymap(preprocess_signs)
@@ -67,6 +68,7 @@ def load_data():
             'Skills','CandidateRegion']] = \
         test_candidates[['Position','Langs','DriverLicense', \
             'Skills','CandidateRegion']].applymap(preprocess_signs)
+
     for i in tqdm(range(len(data_candidates))):
         skills=['']
         if data_candidates['Skills'][i] != 0 and data_candidates['Skills'][i] != "||":
@@ -82,6 +84,7 @@ def load_data():
                 languages.append(ll[0]) 
                 a = ''.join(languages)
         data_candidates['Langs'][i] = a
+
     return {
         'train':{
             'job':

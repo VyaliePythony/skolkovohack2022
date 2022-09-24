@@ -28,6 +28,10 @@ def remove_slash(text):
     text = re.sub(r'[\:]', "", text)
     return re.sub(r' \|\|', "", text)
 
+def driver_license_fix(text):
+    text = ' '.join(set(list(re.sub(r'[А-я ]+', "", text))))
+    return ('категории '+text) if text else text
+
 def load_data():
     jobs_labels = ['JobId','Status','Name','Region','Description']
     test_jobs_labels = ['JobId','Status','Name','Region','Description','nan1','nan2','nan3']
@@ -52,11 +56,11 @@ def load_data():
     data_jobs = data_jobs.fillna('').drop(['Status'],axis=1)
     data_candidates_workplaces = data_candidates_workplaces.fillna('').drop(['FromYear','FromMonth','ToYear','ToMonth'],axis=1)
     data_candidates_education = data_candidates_education.fillna('').drop(['GraduateYear','University'],axis=1)
-    data_candidates = data_candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway','DateCreated','CandidateStatusId'],axis=1)
+    data_candidates = data_candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway','Employment','Schedule','DateCreated','CandidateStatusId'],axis=1)
     test_jobs = test_jobs.fillna('').drop(['Status','nan1','nan2','nan3'],axis=1)
     test_candidates_workplaces = test_candidates_workplaces.fillna('').drop(['FromYear','FromMonth','ToYear','ToMonth'],axis=1)
     test_candidates_education = test_candidates_education.fillna('').drop(['GraduateYear','University'],axis=1)
-    test_candidates = test_candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway'],axis=1)
+    test_candidates = test_candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway','Employment','Schedule'],axis=1)
 
     # preprocess
     data_jobs[['Name','Region','Description']] = data_jobs[['Name','Region','Description']].applymap(preprocess_signs)
@@ -78,6 +82,10 @@ def load_data():
     test_candidates[['Langs']] = test_candidates[['Langs']].applymap(select_langs)
     data_candidates[['Skills']] = data_candidates[['Skills']].applymap(remove_slash)
     test_candidates[['Skills']] = test_candidates[['Skills']].applymap(remove_slash)
+    data_candidates[['DriverLicense']] = data_candidates[['DriverLicense']].applymap(driver_license_fix)
+    test_candidates[['DriverLicense']] = test_candidates[['DriverLicense']].applymap(driver_license_fix)
+
+    
 
     return {
         'train':{

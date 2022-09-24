@@ -4,6 +4,11 @@ import os
 import re
 from string import punctuation
 from status_decode import stat
+import torch
+from transformers import AutoTokenizer, AutoModel
+
+tokenizer = AutoTokenizer.from_pretrained("cointegrated/rubert-tiny")
+model = AutoModel.from_pretrained("cointegrated/rubert-tiny")
 
 def set_path(path):
     global data_path, test_path
@@ -125,7 +130,9 @@ def get_soup_job(jobs):
         res = re.sub(r'[ ]{2,}',' ',res)
         return res
     tmp['Soup'] = tmp[['Name','Description']].apply(soup, axis=1)
-    return tmp[['JobId','Region','Soup']]
+    df = tmp[['JobId','Region','Soup']]
+    df.rename(columns={'JobId':'id'}, inplace=True)
+    return df
 
 def get_soup_candidate(candidates):
     tmp = candidates.copy()
@@ -134,4 +141,31 @@ def get_soup_candidate(candidates):
         res = re.sub(r'[ ]{2,}',' ',res)
         return res
     tmp['Soup'] = tmp[['Position_x','Langs','DriverLicense','Skills','Faculty','Position_y']].apply(soup, axis=1)
-    return tmp[['CandidateId','CandidateRegion','Soup']]
+    df = tmp[['CandidateId','CandidateRegion','Soup']]
+    df.rename(columns={'CandidateId':'id', 'CandidateRegion':'Region'}, inplace=True)
+    return df
+
+def embed_bert_cls(text, model, tokenizer):
+    t = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
+    with torch.no_grad():
+        model_output = model(**{k: v.to(model.device) for k, v in t.items()})
+    embeddings = model_output.last_hidden_state[:, 0, :]
+    embeddings = torch.nn.functional.normalize(embeddings)
+    return embeddings[0].cpu().numpy()
+
+def get_embedding(frame):
+    tmp = frame.copy()
+    def embed(row):
+        return embed_bert_cls(row['Soup'], model, tokenizer)
+    tmp['embed'] = tmp[['Soup']].apply(embed, axis=1)
+    df = tmp[['id','Region','embed']]
+    return df
+
+def get_train_data(jobs, candidates, status):
+    tmp = pd.merge(jobs, status, left_on='id', right_on='JobId')
+    tmp.rename(columns={'embed':'job_embed', 'Region':'job_region'}, inplace=True)
+    tmp = pd.merge(tmp, candidates, left_on='CandidateId', right_on='id')
+    tmp.rename(columns={'embed':'cand_embed', 'Region':'cand_region'}, inplace=True)
+    tmp['region'] = (tmp['job_region'] == tmp['cand_region']).astype(int)
+    tmp = tmp.drop(['JobId','CandidateId','id_x','id_y','job_region','cand_region'],axis=1)
+    return tmp

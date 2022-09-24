@@ -23,8 +23,8 @@ model = nn.Sequential(
   nn.Linear(10, 1),
   nn.Sigmoid()
 )
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.99))
-criterion = nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
+criterion = nn.SmoothL1Loss()
 from torch.utils.data import DataLoader,TensorDataset
 
 batch_size = 300
@@ -34,38 +34,18 @@ train_dataset = TensorDataset(x_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
 test_dataset = TensorDataset(x_test, y_test)
 test_loader = DataLoader(test_dataset, batch_size=batch_size)
+
 for i in range(1000):
     for x_batch,y_batch in train_loader:
     
-    logits = model(x_batch.float())
-    #y_batch = y_batch.type(torch.LongTensor)
-    loss = criterion(logits, y_batch.float())
-    history.append(loss.item())
+        logits = model(x_batch.float())
+        #y_batch = y_batch.type(torch.LongTensor)
+        loss = criterion(logits, y_batch.float())
+        history.append(loss.item())
 
-    optimizer.zero_grad()
-    loss.backward()
+        optimizer.zero_grad()
+        loss.backward()
 
-    optimizer.step()
+        optimizer.step()
 
-  print(f'{i+1},\t loss: {history[-1]}')
-plt.figure(figsize=(10, 7))
-
-plt.plot(history)
-
-plt.title('Loss by batch iterations')
-plt.ylabel('Entropy Loss')
-plt.xlabel('batches')
-
-plt.show()
-acc = 0
-batches = 0
-
-for x_batch, y_batch in test_loader:
-  batches += 1
-  x_batch = x_batch.view(x_batch.shape[0], -1).to(device)
-  y_batch = y_batch.to(device)
-
-  preds = torch.argmax(model(x_batch), dim=1)
-  acc += (preds==y_batch).cpu().numpy().mean()
-
-print(f'Test accuracy {acc / batches:.3}')
+    print(f'{i+1},\t loss: {history[-1]}')

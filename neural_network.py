@@ -57,3 +57,16 @@ plt.ylabel('Entropy Loss')
 plt.xlabel('batches')
 
 plt.show()
+from sklearn.metrics import accuracy_score
+acc = 0
+batches = 0
+
+for x_batch, y_batch in test_loader:
+  batches += 1
+  x_batch = x_batch.view(x_batch.shape[0], -1).to(device)
+  y_batch = y_batch.to(device)
+
+  preds = torch.argmax(model(x_batch), dim=1)
+  acc += (preds==y_batch).cpu().numpy().mean()
+
+print(f'Test accuracy {acc / batches:.3}')

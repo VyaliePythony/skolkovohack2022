@@ -169,3 +169,17 @@ def get_train_data(jobs, candidates, status):
     tmp['region'] = (tmp['job_region'] == tmp['cand_region']).astype(int)
     tmp = tmp.drop(['JobId','CandidateId','id_x','id_y','job_region','cand_region'],axis=1)
     return tmp
+
+def save_train_files(train):
+    job_embed = train.job_embed.to_numpy()
+    cand_embed = train.cand_embed.to_numpy()
+    status = train.Status.to_numpy()
+    regions = train.region.to_numpy()
+
+    job_embed = np.stack(job_embed)
+    cand_embed = np.stack(cand_embed)
+    status = status.reshape(-1, 1)
+    regions = regions.reshape(-1, 1)
+
+    res = np.concatenate((job_embed, cand_embed, regions, status),axis=1)
+    np.save(data_path+'train.npy', res)

@@ -67,7 +67,12 @@ def load_data():
             'Skills','CandidateRegion']] = \
         test_candidates[['Position','Langs','DriverLicense', \
             'Skills','CandidateRegion']].applymap(preprocess_signs)
-
+    for i in tqdm(range(len(data_candidates))):
+    skills=['']
+    if data_candidates['Skills'][i] != 0 and data_candidates['Skills'][i] != "||":
+        skills = data_candidates['Skills'][i].split("||")
+        a = ''.join(skills)
+    data_candidates['Skills'][i] = a
     return {
         'train':{
             'job':

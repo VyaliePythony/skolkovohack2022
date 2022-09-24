@@ -57,7 +57,6 @@ plt.ylabel('Entropy Loss')
 plt.xlabel('batches')
 
 plt.show()
-from sklearn.metrics import accuracy_score
 acc = 0
 batches = 0
 

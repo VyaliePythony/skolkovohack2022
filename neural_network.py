@@ -48,3 +48,12 @@ for i in range(1000):
     optimizer.step()
 
   print(f'{i+1},\t loss: {history[-1]}')
+plt.figure(figsize=(10, 7))
+
+plt.plot(history)
+
+plt.title('Loss by batch iterations')
+plt.ylabel('Entropy Loss')
+plt.xlabel('batches')
+
+plt.show()

@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import re
 from string import punctuation
-import tqdm
+from tqdm import tqdm
 
 def set_path(path):
     global data_path, test_path
@@ -75,6 +75,7 @@ def load_data():
             skills = data_candidates['Skills'][i].split("||")
             a = ''.join(skills)
         data_candidates['Skills'][i] = a
+
     for i in tqdm(range(len(data_candidates))):
         languages = ['']
         if data_candidates['Langs'][i] != 0 and data_candidates['Langs'][i] != "||":

@@ -10,4 +10,4 @@ data.set_path(data_path)
 
 dataset = data.load_data()
 df = dataset['train']['job']
-# print(df)
+print(df)

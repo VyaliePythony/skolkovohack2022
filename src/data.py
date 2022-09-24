@@ -83,8 +83,8 @@ def load_data():
             for j in range(len(a)-1):
                 ll = a[j].split(':')
                 languages.append(ll[0]) 
-                a = ''.join(languages)
-        data_candidates['Langs'][i] = a
+                b = ''.join(languages)
+        data_candidates['Langs'][i] = b
 
     return {
         'train':{

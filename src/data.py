@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import re
 from string import punctuation
-from tqdm import tqdm
 
 def set_path(path):
     global data_path, test_path
@@ -16,12 +15,18 @@ def preprocess_signs(text):
     text = re.sub(r'[\_+\*+\#+\№\"\-+\+\=+\?+\&\^\.+\;\,+\>+\(\)\/+]', " ", text)
     text = re.sub(r'[ ]{2,}',' ',text)
     text = text.strip()
-    # tokens = mystem.lemmatize(text)
-    # tokens = [snowball.stem(token) for token in tokens if token not in russian_stopwords\
-    #             and token != " " \
-    #             and token.strip() not in punctuation ]
-    # text = " ".join(tokens)
     return text
+
+def select_langs(text):
+    text = re.sub(r':.*?\|\|', " ", text)
+    text = text.strip()
+    text = re.sub(r'[\|+]', " ", text)
+    text = ' '.join(set(text.split()))
+    return text
+
+def remove_slash(text):
+    text = re.sub(r'[\:]', "", text)
+    return re.sub(r' \|\|', "", text)
 
 def load_data():
     jobs_labels = ['JobId','Status','Name','Region','Description']
@@ -68,23 +73,11 @@ def load_data():
             'Skills','CandidateRegion']] = \
         test_candidates[['Position','Langs','DriverLicense', \
             'Skills','CandidateRegion']].applymap(preprocess_signs)
-    for i in tqdm(range(len(data_candidates))):
-        skills=['']
-        if data_candidates['Skills'][i] != '' and data_candidates['Skills'][i] != "||":
-            skills=['']
-            skills = data_candidates['Skills'][i].split("||")
-        a = ''.join(skills)
-        data_candidates['Skills'][i] = a
 
-    for i in tqdm(range(len(data_candidates))):
-        languages = ['']
-        if data_candidates['Langs'][i] != '' and data_candidates['Langs'][i] != "||":
-            a = data_candidates['Langs'][i].split("||")
-            for j in range(len(a)-1):
-                ll = a[j].split(':')
-                languages.append(ll[0]) 
-        b = ' '.join(languages)
-        data_candidates['Langs'][i] = b 
+    data_candidates[['Langs']] = data_candidates[['Langs']].applymap(select_langs)
+    test_candidates[['Langs']] = test_candidates[['Langs']].applymap(select_langs)
+    data_candidates[['Skills']] = data_candidates[['Skills']].applymap(remove_slash)
+    test_candidates[['Skills']] = test_candidates[['Skills']].applymap(remove_slash)
 
     return {
         'train':{

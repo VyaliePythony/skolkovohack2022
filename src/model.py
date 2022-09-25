@@ -20,7 +20,7 @@ def train():
 
     # TRAIN MODEL
 
-# test on dataset
+# predict on test dataset
 def predict_test():
     data.load_data(raw=True)
     identities,test = data.pair_to_vec(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education)
@@ -29,9 +29,19 @@ def predict_test():
 
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
 
+# predict on dataframes
 def predict(jobs,candidates,candidates_workplaces,candidates_education):
     identities,test = data.pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education)
 
     # MODEL PREDICT ON TEST
 
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
+
+def predict_json(json):
+    res = json2pdFrame(json)
+    return 0
+
+def json2pdFrame(json):
+    job = 0
+    candidate = 0
+    return 0

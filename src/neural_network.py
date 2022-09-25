@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 train = np.load('train.npy')
-y = train[:,625].reshape(40570,1)
 x = train[:,:625]
+y = train[:,625].reshape(40570,1)
 x = torch.from_numpy(x)
 y = torch.from_numpy(y)
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2,
@@ -29,7 +29,6 @@ model = nn.Sequential(
 )
 optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
 criterion = nn.MSELoss()
-from torch.utils.data import DataLoader,TensorDataset
 
 batch_size = 300
 epochs = 50

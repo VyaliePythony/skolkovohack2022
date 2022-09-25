@@ -1,65 +1,76 @@
+import torch
+from sklearn.model_selection import train_test_split
 import torch.nn as nn
 import torch.nn.functional as F
+from torchsummary import summary
+from torch.utils.data import DataLoader,TensorDataset
 from sklearn.metrics import accuracy_score
-import matplotlib.pyplot as plt
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(625, 200)
-        self.fc2 = nn.Linear(200, 200)
-        self.fc3 = nn.Linear(200, 10)
-        self.fc4 = nn.Linear(10, 1)
-    def forward(self, x):
-      x = F.relu(self.fc1(x))
-      x = F.relu(self.fc2(x))
-      x = F.relu(self.fc3(x))
-      x = self.fc4(x)
-      return F.log_softmax(x)
-model = Net()
-optimizer = optim.SGD(net.parameters(), lr=lr=1e-3, momentum=0.9)
-criterion = nn.CrossEntropyLoss()
-from torch.utils.data import DataLoader
+embedding = np.load('embeddings.npy')
+status = np.load('status.npy').reshape(40570,1)
+region = np.load('region.npy').reshape(40570,1)
+embedding = np.concatenate((embedding, region), axis=1)
+x = torch.from_numpy(embedding)
+y = torch.from_numpy(status)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2,
+                                                    shuffle=True, random_state=42)
+model = nn.Sequential(
+  nn.Linear(625, 100),
+  nn.ReLU(), 
+  nn.Linear(200, 200), 
+  nn.ReLU(),
+  nn.Dropout(),
+  nn.Linear(200, 60),
+  nn.ReLU(),
+  nn.Linear(100, 10), 
+  nn.ReLU(),
+  nn.Linear(10, 1),
+  nn.Sigmoid()
+)
+optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
+criterion = nn.MSELoss()
+from torch.utils.data import DataLoader,TensorDataset
 
-batch_size = 128
+batch_size = 300
 epochs = 50
 history = []
-train_loader = DataLoader(train, batch_size=batch_size, drop_last=True)
-test_loader = DataLoader(test, batch_size=batch_size, drop_last=True)
-for i in range(epochs):
-  for x_batch, y_batch in train_loader:
-    x_batch = x_batch.view(x_batch.shape[0], -1).to(device)
-    y_batch = y_batch.to(device)
+train_dataset = TensorDataset(x_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
+test_dataset = TensorDataset(x_test, y_test)
+test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-    logits = model(x_batch)
+for i in range(100):
+    for x_batch,y_batch in train_loader:
+    
+        logits = model(x_batch.float())
+        #y_batch = y_batch.type(torch.LongTensor)
+        loss = criterion(logits, y_batch.float())
+        history.append(loss.item())
 
-    loss = criterion(logits, y_batch)
-    history.append(loss.item())
+        optimizer.zero_grad()
+        loss.backward()
 
-    optimizer.zero_grad()
-    loss.backward()
+        optimizer.step()
 
-    optimizer.step()
+    print(f'{i+1},\t loss: {history[-1]}')
 
-  print(f'{i+1},\t loss: {history[-1]}')
 plt.figure(figsize=(10, 7))
 
 plt.plot(history)
 
-plt.title('Loss by batch iterations')
-plt.ylabel('Entropy Loss')
+plt.title('Loss ')
+plt.ylabel('MSELoss')
 plt.xlabel('batches')
 
 plt.show()
+from sklearn.metrics import accuracy_score
 acc = 0
 batches = 0
 
 for x_batch, y_batch in test_loader:
   batches += 1
-  x_batch = x_batch.view(x_batch.shape[0], -1).to(device)
-  y_batch = y_batch.to(device)
-
-  preds = torch.argmax(model(x_batch), dim=1)
-  acc += (preds==y_batch).cpu().numpy().mean()
+  preds = model(x_batch.float())
+  preds = torch.round(preds)
+  y_batch = torch.round(y_batch)
+  acc += (preds==y_batch).numpy().mean()
 
 print(f'Test accuracy {acc / batches:.3}')
-from sklearn.metrics import accuracy_score

@@ -104,8 +104,10 @@ def train(full=False,save=False):
 # test on dataset
 def predict_test():
     data.load_data(raw=True)
-    identities,test = data.pair_to_vec(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education)
-
+    res = predict(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education)
+    """
+    схоронить res в .csv сгруппировав по job_id
+    """
     # MODEL PREDICT ON TEST
     
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
@@ -115,12 +117,22 @@ def predict(jobs,candidates,candidates_workplaces,candidates_education):
     identities,test = data.pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education)
 
     # MODEL PREDICT ON TEST
+    """
+    1. предикт на test (не менять порядок)
+    2. собрать dataframe columns=['job_id','cand_id','predict']
+        для i-й строки identities поставить i-й predict
+    3. отсортировать его по predict в порядке убывания
+    """
 
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
 
 # predict on JSON
 def predict_json(json):
     res = json2pdFrame(json)
+    """
+    1. JSON -> dataframes
+    2. predict()
+    """
     res = predict(res)
     return 0
 

@@ -41,7 +41,7 @@ def driver_license_fix(text):
 def merge_list(text_list):
     return ' '.join(text_list).strip()
 
-def load_data():
+def load_data(raw=False):
     global data_candidates_workplaces, test_candidates_workplaces, \
         data_candidates_education, test_candidates_education, \
         data_candidates, test_candidates, \
@@ -66,6 +66,9 @@ def load_data():
     test_candidates_education = pd.read_csv(test_path+'test_candidates_education.csv',sep=';')
     test_candidates = pd.read_csv(test_path+'test_candidates.csv',sep=';')
 
+    if raw:
+        test_jobs = test_jobs.fillna('').drop(['nan1','nan2','nan3'],axis=1)
+        return 0
 
     # missing data
     data_jobs = data_jobs.fillna('').drop(['Status'],axis=1)
@@ -115,10 +118,10 @@ def load_data():
 
     data_candidates = data_candidates_pure.drop_duplicates(subset=['CandidateId'])
     
-    data_candidates_tmp = pd.merge(data_candidates_education, data_candidates_workplaces, left_on='CandidateId', right_on='CandidateId')
-    data_candidates = pd.merge(data_candidates, data_candidates_tmp, left_on='CandidateId', right_on='CandidateId')
-    test_candidates_tmp = pd.merge(test_candidates_education, test_candidates_workplaces, left_on='CandidateId', right_on='CandidateId')
-    test_candidates = pd.merge(test_candidates, test_candidates_tmp, left_on='CandidateId', right_on='CandidateId')
+    data_candidates_tmp = pd.merge(data_candidates_education, data_candidates_workplaces, left_on='CandidateId', right_on='CandidateId',how='outer').fillna('')
+    data_candidates = pd.merge(data_candidates, data_candidates_tmp, left_on='CandidateId', right_on='CandidateId',how='left').fillna('')
+    test_candidates_tmp = pd.merge(test_candidates_education, test_candidates_workplaces, left_on='CandidateId', right_on='CandidateId',how='outer').fillna('')
+    test_candidates = pd.merge(test_candidates, test_candidates_tmp, left_on='CandidateId', right_on='CandidateId',how='left').fillna('')
 
     # set metric instead of status + normalize
     status[['Status']] = status[['Status']].applymap(lambda x: stat[x]/10.0)
@@ -162,15 +165,25 @@ def get_embedding(frame):
     return df
 
 def get_train_data(jobs, candidates, status):
-    tmp = pd.merge(jobs, status, left_on='id', right_on='JobId')
+    tmp = pd.merge(jobs, status, left_on='id', right_on='JobId',how='right').fillna('')
     tmp.rename(columns={'embed':'job_embed', 'Region':'job_region'}, inplace=True)
-    tmp = pd.merge(tmp, candidates, left_on='CandidateId', right_on='id')
+    tmp = pd.merge(tmp, candidates, left_on='CandidateId', right_on='id',how='left').fillna('')
     tmp.rename(columns={'embed':'cand_embed', 'Region':'cand_region'}, inplace=True)
     tmp['region'] = (tmp['job_region'] == tmp['cand_region']).astype(int)
     tmp = tmp.drop(['JobId','CandidateId','id_x','id_y','job_region','cand_region'],axis=1)
     return tmp
 
-def save_train_files(train):
+def get_test_data(jobs, candidates):
+    jobs.rename(columns={'embed':'job_embed', 'Region':'job_region', 'id':'job_id'}, inplace=True)
+    candidates.rename(columns={'embed':'cand_embed', 'Region':'cand_region', 'id':'cand_id'}, inplace=True)
+    jobs['key'] = 0
+    candidates['key'] = 0
+    tmp = jobs.merge(candidates, on='key', how='outer')
+    tmp['region'] = (tmp['job_region'] == tmp['cand_region']).astype(int)
+    tmp = tmp.drop(['job_region','cand_region','key'],axis=1)
+    return [ tmp[['job_id', 'cand_id']], tmp[['job_embed', 'cand_embed', 'region']] ]
+
+def make_train_array(train):
     job_embed = train.job_embed.to_numpy()
     cand_embed = train.cand_embed.to_numpy()
     status = train.Status.to_numpy()
@@ -182,4 +195,53 @@ def save_train_files(train):
     regions = regions.reshape(-1, 1)
 
     res = np.concatenate((job_embed, cand_embed, regions, status),axis=1)
-    np.save(data_path+'train.npy', res)
+    # np.save(data_path+'train.npy', res)
+    return res
+
+def make_test_array(test):
+    job_embed = test.job_embed.to_numpy()
+    cand_embed = test.cand_embed.to_numpy()
+    regions = test.region.to_numpy()
+    
+    job_embed = np.stack(job_embed)
+    cand_embed = np.stack(cand_embed)
+    regions = regions.reshape(-1, 1)
+    
+    res = np.concatenate((job_embed, cand_embed, regions),axis=1)
+    return res
+
+def pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education):
+    # missing data
+    test_jobs = jobs.fillna('').drop(['Status'],axis=1)
+    test_candidates_workplaces = candidates_workplaces.fillna('').drop(['FromYear','FromMonth','ToYear','ToMonth'],axis=1)
+    test_candidates_education = candidates_education.fillna('').drop(['GraduateYear','University'],axis=1)
+    test_candidates = candidates.fillna('').drop(['Sex','Citizenship','Age','Salary','Subway','Employment','Schedule'],axis=1)
+
+    # preprocess
+    test_jobs[['Name','Region','Description']] = test_jobs[['Name','Region','Description']].applymap(preprocess_signs)
+    test_candidates_workplaces[['Position']] = test_candidates_workplaces[['Position']].applymap(preprocess_signs)
+    test_candidates_education[['Faculty']] = test_candidates_education[['Faculty']].applymap(preprocess_signs)
+    test_candidates[['Position','Langs','DriverLicense', \
+            'Skills','CandidateRegion']] = \
+        test_candidates[['Position','Langs','DriverLicense', \
+            'Skills','CandidateRegion']].applymap(preprocess_signs)
+
+    test_candidates[['Langs']] = test_candidates[['Langs']].applymap(select_langs)
+    test_candidates[['Skills']] = test_candidates[['Skills']].applymap(remove_slash)
+    test_candidates[['DriverLicense']] = test_candidates[['DriverLicense']].applymap(driver_license_fix)
+
+    test_candidates_workplaces = test_candidates_workplaces.groupby(['CandidateId'])['Position'].apply(list).reset_index()
+    test_candidates_education = test_candidates_education.groupby(['CandidateId'])['Faculty'].apply(list).reset_index()
+
+    test_candidates_workplaces[['Position']] = test_candidates_workplaces[['Position']].applymap(merge_list)
+    test_candidates_education[['Faculty']] = test_candidates_education[['Faculty']].applymap(merge_list)
+    
+    test_candidates_tmp = pd.merge(test_candidates_education, test_candidates_workplaces, left_on='CandidateId', right_on='CandidateId',how='outer').fillna('')
+    test_candidates = pd.merge(test_candidates, test_candidates_tmp, left_on='CandidateId', right_on='CandidateId',how='left').fillna('')
+    
+    jobs = get_embedding(get_soup_job(test_jobs))
+    candidates = get_embedding(get_soup_candidate(test_candidates))
+
+    identities,test=get_test_data(jobs,candidates)
+    array=make_test_array(test)
+    return [identities,array]

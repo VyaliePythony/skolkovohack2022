@@ -195,7 +195,6 @@ def make_train_array(train):
     regions = regions.reshape(-1, 1)
 
     res = np.concatenate((job_embed, cand_embed, regions, status),axis=1)
-    # np.save(data_path+'train.npy', res)
     return res
 
 def make_test_array(test):

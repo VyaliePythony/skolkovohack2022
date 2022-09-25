@@ -33,17 +33,24 @@ optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
 criterion = nn.MSELoss()
 
 # train on dataset
-def train():
-    data.load_data()
-    jobs = data.get_embedding(data.get_soup_job(data.data_jobs))
-    candidates = data.get_embedding(data.get_soup_candidate(data.data_candidates))
-    train = data.get_train_data(jobs,candidates,data.status)
-    train = data.make_train_array(train)
+def train(full=False,save=False):
+    if full:
+        data.load_data()
+        jobs = data.get_embedding(data.get_soup_job(data.data_jobs))
+        candidates = data.get_embedding(data.get_soup_candidate(data.data_candidates))
+        train = data.get_train_data(jobs,candidates,data.status)
+        train = data.make_train_array(train)
+        if save:
+            np.save(data_path+'train.npy', train)
+            return 0
+    else:
+        train = np.load(data_path+'train.npy')
 
-    y = train[:,625].reshape(40570,1)
+    y = train[:,625].reshape(train.shape[0],1) # last columns is metric status
+    x = train[:,:-1] # 312+312+1 | vec1,vec2,region
     x = torch.from_numpy(x)
     y = torch.from_numpy(y)
-    
+
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2,
                                                         shuffle=True, random_state=42)
     # TRAIN MODEL
@@ -55,7 +62,7 @@ def train():
     test_dataset = TensorDataset(x_test, y_test)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-    # predict on test dataset
+    # learn on train dataset
     for i in range(100):
         for x_batch,y_batch in train_loader:
 
@@ -84,6 +91,7 @@ def train():
     acc = 0
     batches = 0
 
+    # predict on test dataset
     for x_batch, y_batch in test_loader:
         batches += 1
         preds = model(x_batch.float())
@@ -99,7 +107,7 @@ def predict_test():
     identities,test = data.pair_to_vec(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education)
 
     # MODEL PREDICT ON TEST
-           
+    
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
 
 # predict on dataframes

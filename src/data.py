@@ -209,7 +209,7 @@ def make_test_array(test):
     res = np.concatenate((job_embed, cand_embed, regions),axis=1)
     return res
 
-def pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education):
+def pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education,soup=False):
     # missing data
     test_jobs = jobs.fillna('').drop(['Status'],axis=1)
     test_candidates_workplaces = candidates_workplaces.fillna('').drop(['FromYear','FromMonth','ToYear','ToMonth'],axis=1)
@@ -238,8 +238,13 @@ def pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education):
     test_candidates_tmp = pd.merge(test_candidates_education, test_candidates_workplaces, left_on='CandidateId', right_on='CandidateId',how='outer').fillna('')
     test_candidates = pd.merge(test_candidates, test_candidates_tmp, left_on='CandidateId', right_on='CandidateId',how='left').fillna('')
     
-    jobs = get_embedding(get_soup_job(test_jobs))
-    candidates = get_embedding(get_soup_candidate(test_candidates))
+    tmpjob = get_soup_job(test_jobs)
+    jobs = get_embedding(tmpjob)
+    tmpcand = get_soup_candidate(test_candidates)
+    candidates = get_embedding(tmpcand)
+
+    if soup:
+        return [tmpjob,tmpcand]
 
     identities,test=get_test_data(jobs,candidates)
     array=make_test_array(test)

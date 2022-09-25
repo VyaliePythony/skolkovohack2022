@@ -1,3 +1,5 @@
+from operator import mod
+from statistics import mode
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
@@ -32,6 +34,10 @@ model = nn.Sequential(
 optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
 criterion = nn.MSELoss()
 
+def load_model():
+    model = torch.load(data_path+'model.pth')
+    model.eval()
+
 # train on dataset
 def train(full=False,save=False):
     if full:
@@ -55,7 +61,7 @@ def train(full=False,save=False):
                                                         shuffle=True, random_state=42)
     # TRAIN MODEL
     batch_size = 300
-    epochs = 50
+    epochs = 100
     history = []
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
@@ -63,7 +69,7 @@ def train(full=False,save=False):
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
     # learn on train dataset
-    for i in range(100):
+    for i in range(epochs):
         for x_batch,y_batch in train_loader:
 
             logits = model(x_batch.float())
@@ -77,6 +83,8 @@ def train(full=False,save=False):
             optimizer.step()
 
         print(f'{i+1},\t loss: {history[-1]}')
+
+    torch.save(model, data_path+'model.pth')
 
     plt.figure(figsize=(10, 7))
 
@@ -105,25 +113,22 @@ def train(full=False,save=False):
 def predict_test():
     data.load_data(raw=True)
     res = predict(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education)
-    """
-    схоронить res в .csv сгруппировав по job_id
-    """
     # MODEL PREDICT ON TEST
     
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
+    return res
 
 # predict on dataframes
 def predict(jobs,candidates,candidates_workplaces,candidates_education):
     identities,test = data.pair_to_vec(jobs,candidates,candidates_workplaces,candidates_education)
 
     # MODEL PREDICT ON TEST
-    """
-    1. предикт на test (не менять порядок)
-    2. собрать dataframe columns=['job_id','cand_id','predict']
-        для i-й строки identities поставить i-й predict
-    3. отсортировать его по predict в порядке убывания
-    """
-
+    # predictions = []
+    # for row in test:
+    #     predictions.append(model( torch.from_numpy(row).float() ))
+    predictions = model( torch.from_numpy(test).float() )
+    identities['predict'] = predictions.detach().numpy()
+    return identities.sort_values(by=['predict'],ascending=False)
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
 
 # predict on JSON
@@ -140,3 +145,25 @@ def json2pdFrame(json):
     job = 0
     candidate = 0
     return 0
+
+def decode_prediction(predicts):
+    data.load_data(raw=True)
+    jobs, candidates = data.pair_to_vec(data.test_jobs,data.test_candidates,data.test_candidates_workplaces,data.test_candidates_education, soup=True)
+
+    res=[]
+
+    for i in range(predicts.shape[0]):
+        job_soup = jobs[jobs.id==predicts.job_id[i]].Soup
+        candidates_soup = candidates[candidates.id==predicts.cand_id[i]].Soup
+        metric = predicts.predict[i]
+        res.append([metric,job_soup,candidates_soup])
+
+    return pd.DataFrame(data=res,columns=['metric','job','candidate'])
+
+def save_predictions(predicts):
+    jobs = predicts.job_id.unique().tolist()
+    for i in jobs:
+        i_predicts = predicts[predicts.job_id == i]
+        sort_pred = i_predicts.sort_values(by=['predict'],ascending=False)
+        tmp = sort_pred[['cand_id','predict']]
+        tmp.to_csv(data_path+f'result_job_{i}.csv',header=False)

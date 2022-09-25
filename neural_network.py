@@ -5,23 +5,22 @@ import torch.nn.functional as F
 from torchsummary import summary
 from torch.utils.data import DataLoader,TensorDataset
 from sklearn.metrics import accuracy_score
-embedding = np.load('embeddings.npy')
-status = np.load('status.npy').reshape(40570,1)
-region = np.load('region.npy').reshape(40570,1)
-embedding = np.concatenate((embedding, region), axis=1)
-x = torch.from_numpy(embedding)
-y = torch.from_numpy(status)
+train = np.load('train.npy')
+y = train[:,625].reshape(40570,1)
+x = train[:,:625]
+x = torch.from_numpy(x)
+y = torch.from_numpy(y)
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2,
                                                     shuffle=True, random_state=42)
 model = nn.Sequential(
-  nn.Linear(625, 100),
+  nn.Linear(625, 200),
   nn.ReLU(), 
   nn.Linear(200, 200), 
   nn.ReLU(),
   nn.Dropout(),
   nn.Linear(200, 60),
   nn.ReLU(),
-  nn.Linear(100, 10), 
+  nn.Linear(60, 10), 
   nn.ReLU(),
   nn.Linear(10, 1),
   nn.Sigmoid()

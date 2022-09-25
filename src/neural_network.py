@@ -2,9 +2,11 @@ import torch
 from sklearn.model_selection import train_test_split
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import summary
 from torch.utils.data import DataLoader,TensorDataset
 from sklearn.metrics import accuracy_score
+import numpy as np
+import matplotlib.pyplot as plt
+
 train = np.load('train.npy')
 y = train[:,625].reshape(40570,1)
 x = train[:,:625]

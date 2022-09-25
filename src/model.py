@@ -28,20 +28,22 @@ model = nn.Sequential(
   nn.Linear(10, 1),
   nn.Sigmoid()
 )
+
 optimizer = torch.optim.SGD(model.parameters(),lr = 0.01)
 criterion = nn.MSELoss()
+
 # train on dataset
 def train():
     data.load_data()
     jobs = data.get_embedding(data.get_soup_job(data.data_jobs))
     candidates = data.get_embedding(data.get_soup_candidate(data.data_candidates))
-    # jobs.to_csv(data.data_path+'jobs_embed.csv')
-    # candidates.to_csv(data.data_path+'candidates_embed.csv')
     train = data.get_train_data(jobs,candidates,data.status)
     train = data.make_train_array(train)
+
     y = train[:,625].reshape(40570,1)
     x = torch.from_numpy(x)
     y = torch.from_numpy(y)
+    
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2,
                                                         shuffle=True, random_state=42)
     # TRAIN MODEL
@@ -53,7 +55,7 @@ def train():
     test_dataset = TensorDataset(x_test, y_test)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-# predict on test dataset
+    # predict on test dataset
     for i in range(100):
         for x_batch,y_batch in train_loader:
 
@@ -90,6 +92,7 @@ def train():
         acc += (preds==y_batch).numpy().mean()
 
     print(f'Test accuracy {acc / batches:.3}')
+
 # test on dataset
 def predict_test():
     data.load_data(raw=True)
@@ -107,8 +110,10 @@ def predict(jobs,candidates,candidates_workplaces,candidates_education):
 
     # SET DEPENDENCIES OF PREDICTIONS BY IDENTITIES
 
+# predict on JSON
 def predict_json(json):
     res = json2pdFrame(json)
+    res = predict(res)
     return 0
 
 def json2pdFrame(json):
